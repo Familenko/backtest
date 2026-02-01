@@ -219,7 +219,7 @@ def backtest_dca(
 
         ax_portfolio = ax_price.twinx()
         ax_portfolio.plot(result.index, result["Portfolio"], label="Portfolio ($)")
-        invested_plot = result["Invested"].resample("M").last()
+        invested_plot = result["Invested"].resample("ME").last()
         ax_portfolio.bar(invested_plot.index, invested_plot.values, width=20, alpha=0.15, label="Invested capital ($)")
 
         ax_portfolio.set_ylabel("Portfolio / Invested ($)")
