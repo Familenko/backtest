@@ -127,21 +127,22 @@ def backtest_dca(
     freq: str = "D",
     available_sum: float = 1_000_000,
     fee: float = 0.001,
+    profit_multiple: float = 2.0,
     cooldown_days: int = 180,
     plot: bool = True
 ):
     buy_dates = prices.resample(freq).first().dropna().index
-    profit_multiple = 2.0
 
-    qty = 0.0                       # кількість активу
-    cost_basis = 0.0                # собівартість поточного qty
-    realized_profit = 0.0           # зафіксований прибуток
-    cash_spent = 0.0                # скільки реально внесли ззовні
+    qty = 0.0
+    cost_basis = 0.0
+    realized_profit = 0.0
+    cash_spent = 0.0
 
     dates = []
     portfolio_value = []
     invested_value = []
     realized_profit_series = []
+    avg_price_series = []
 
     cooldown = 0
     trigger_dates = []
@@ -181,15 +182,19 @@ def backtest_dca(
             cooldown = cooldown_days
             trigger_dates.append(date)
 
+        avg_price = cost_basis / qty if qty > 0 else np.nan
+
         dates.append(date)
         portfolio_value.append(qty * price)
         invested_value.append(cost_basis)
         realized_profit_series.append(realized_profit)
+        avg_price_series.append(avg_price)
 
     result = pd.DataFrame(
         {
             "Portfolio": portfolio_value,
             "Invested": invested_value,
+            "Avg_price": avg_price_series,
             "Realized_profit": realized_profit_series,
         },
         index=dates,
@@ -214,19 +219,31 @@ def backtest_dca(
             label="Asset price",
             linewidth=1.5,
         )
+
+        # --- середня ціна ---
+        ax_price.plot(
+            result.index,
+            result["Avg_price"],
+            color="red",
+            linestyle="--",
+            linewidth=1.0,
+            alpha=0.8,
+            label="Average price",
+        )
+
         ax_price.set_ylabel("Asset price ($)")
         ax_price.set_xlabel("Date")
 
         # --- тейк-профіти ---
-        if len(trigger_dates) > 0:
+        if trigger_dates:
             ax_price.scatter(
                 trigger_dates,
                 prices.loc[trigger_dates],
                 color="red",
                 marker="o",
                 s=20,
-                label="Take-profit",
                 zorder=5,
+                label="Take-profit",
             )
 
         # --- портфель ---
@@ -238,7 +255,7 @@ def backtest_dca(
             alpha=0.8,
         )
 
-        # --- вкладення (бари) ---
+        # --- вкладення ---
         invested_plot = result["Invested"].resample("ME").last()
         ax_portfolio.bar(
             invested_plot.index,
@@ -255,9 +272,8 @@ def backtest_dca(
         l2, lab2 = ax_portfolio.get_legend_handles_labels()
         ax_price.legend(l1 + l2, lab1 + lab2, loc="upper left")
 
-        plt.title(f"DCA ({freq}) — Price vs Portfolio vs Invested (Take-Profit)")
+        plt.title(f"DCA ({freq}) — Price vs Avg vs Portfolio (Take-Profit)")
         plt.tight_layout()
         plt.show()
 
     return result, metrics
-
