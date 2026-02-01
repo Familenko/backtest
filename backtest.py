@@ -201,10 +201,10 @@ def backtest_dca(
     )
 
     metrics = {
-        "Cash_spent": cash_spent,
-        "Final_portfolio_value": portfolio_value[-1],
-        "Realized_profit": realized_profit,
-        "Total_equity": portfolio_value[-1] + realized_profit,
+        "Cash_spent": int(cash_spent),
+        "Final_portfolio_value": int(portfolio_value[-1]),
+        "Realized_profit": int(realized_profit),
+        "Total_equity": int(portfolio_value[-1]) + int(realized_profit),
         "Num_take_profits": len(trigger_dates),
     }
 
