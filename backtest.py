@@ -217,7 +217,7 @@ def backtest_dca(
             prices.values,
             color="orange",
             label="Asset price",
-            linewidth=1.5,
+            linewidth=1.0,
         )
 
         # --- середня ціна ---
@@ -227,7 +227,7 @@ def backtest_dca(
             color="red",
             linestyle="--",
             linewidth=1.0,
-            alpha=0.8,
+            alpha=0.5,
             label="Average price",
         )
 
@@ -246,13 +246,27 @@ def backtest_dca(
                 label="Take-profit",
             )
 
+        for dt in trigger_dates:
+            profit = result.loc[dt]["Realized_profit"]
+            price = prices.loc[dt]
+
+            ax_price.annotate(
+                f"{profit:.0f}$",
+                xy=(dt, price),
+                xytext=(0, 8),
+                textcoords="offset points",
+                ha="right",
+                fontsize=12,
+                color="black",
+            )
+
         # --- портфель ---
         ax_portfolio = ax_price.twinx()
         ax_portfolio.plot(
             result.index,
             result["Portfolio"],
             label="Portfolio ($)",
-            alpha=0.8,
+            alpha=0.5,
         )
 
         # --- вкладення ---
