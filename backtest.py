@@ -125,110 +125,138 @@ def backtest_dca(
     prices: pd.Series,
     buy_amount: float = 2.0,
     freq: str = "D",
-    available_sum = 10000,
+    available_sum: float = 1_000_000,
     fee: float = 0.001,
-    profit_multiple: float = 2.0,
+    cooldown_days: int = 180,
     plot: bool = True
 ):
     buy_dates = prices.resample(freq).first().dropna().index
+    profit_multiple = 2.0
 
-    qty = 0.0
+    qty = 0.0                       # кількість активу
+    cost_basis = 0.0                # собівартість поточного qty
+    realized_profit = 0.0           # зафіксований прибуток
+    cash_spent = 0.0                # скільки реально внесли ззовні
 
     dates = []
-    portfolio_history = []
-    investment_history = []
-    realized_profit = []
-    invested_series = pd.Series(0.0, index=prices.index)
-    realized_invested = 0.0
-    profit = None
+    portfolio_value = []
+    invested_value = []
+    realized_profit_series = []
+
+    cooldown = 0
     trigger_dates = []
 
-    # динамічний поріг для take-profit
-    profit_multiplier_dynamic = profit_multiple
-
-    counter = 0
     for date, price in prices.items():
-        # --- купівля за зарплату ---
-        if date in buy_dates:
 
+        # --- DCA покупка ---
+        if date in buy_dates and available_sum >= buy_amount:
             available_sum -= buy_amount
-            if available_sum < 0:
-                continue
+            cash_spent += buy_amount
 
             effective_amount = buy_amount * (1 - fee)
-            qty += effective_amount / price
-            invested_series.loc[date] += buy_amount
+            buy_qty = effective_amount / price
 
-        invested_cum = invested_series.loc[:date].sum()
-        net_invested = invested_cum - realized_invested
-        net_portfolio_value = qty * price
+            qty += buy_qty
+            cost_basis += buy_amount
 
-        if counter != 0:
-            counter -= 1
+        if cooldown > 0:
+            cooldown -= 1
 
         # --- take-profit ---
-        if (net_invested > 0) and (net_portfolio_value >= (profit_multiplier_dynamic * net_invested)) and counter == 0:
-            # продаємо половину портфеля
+        if (
+            qty > 0
+            and cost_basis > 0
+            and qty * price >= profit_multiple * cost_basis
+            and cooldown == 0
+        ):
             sell_qty = qty * 0.5
             proceeds = sell_qty * price * (1 - fee)
-            cost_basis = net_invested * 0.5
-            profit = proceeds - cost_basis
+
+            cost_sold = cost_basis * (sell_qty / qty)
+            realized_profit += proceeds - cost_sold
 
             qty -= sell_qty
-            realized_invested += cost_basis
+            cost_basis -= cost_sold
+
+            cooldown = cooldown_days
             trigger_dates.append(date)
 
-            # збільшуємо поріг для наступного take-profit
-            # profit_multiplier_dynamic *= 2
-            counter = 180
-
-            # оновлюємо net_portfolio_value після продажу
-            net_portfolio_value = qty * price
-            net_invested = invested_cum - realized_invested
-
         dates.append(date)
-        portfolio_history.append(net_portfolio_value)
-        investment_history.append(net_invested)
-        if profit:
-            realized_profit.append(profit)
-            profit = None
-        else:
-            realized_profit.append(0.0)
+        portfolio_value.append(qty * price)
+        invested_value.append(cost_basis)
+        realized_profit_series.append(realized_profit)
 
-    invested_cum = invested_series.cumsum()
-
-    result = pd.DataFrame({
-        "Portfolio": portfolio_history,
-        "Invested": investment_history,
-        "Realized_profit": realized_profit
-    }, index=dates)
+    result = pd.DataFrame(
+        {
+            "Portfolio": portfolio_value,
+            "Invested": invested_value,
+            "Realized_profit": realized_profit_series,
+        },
+        index=dates,
+    )
 
     metrics = {
-        "Total_invested": invested_cum.iloc[-1],
-        "Final_value": result["Portfolio"].iloc[-1],
-        "Realized_profit": sum(realized_profit),
-        "Num_rebalances": len(trigger_dates)
+        "Cash_spent": cash_spent,
+        "Final_portfolio_value": portfolio_value[-1],
+        "Realized_profit": realized_profit,
+        "Total_equity": portfolio_value[-1] + realized_profit,
+        "Num_take_profits": len(trigger_dates),
     }
 
     if plot:
         fig, ax_price = plt.subplots(figsize=(10, 5))
 
-        ax_price.plot(prices.index, prices.values, color="orange", label="Asset price")
+        # --- ціна активу ---
+        ax_price.plot(
+            prices.index,
+            prices.values,
+            color="orange",
+            label="Asset price",
+            linewidth=1.5,
+        )
         ax_price.set_ylabel("Asset price ($)")
         ax_price.set_xlabel("Date")
 
+        # --- тейк-профіти ---
+        if len(trigger_dates) > 0:
+            ax_price.scatter(
+                trigger_dates,
+                prices.loc[trigger_dates],
+                color="red",
+                marker="o",
+                s=20,
+                label="Take-profit",
+                zorder=5,
+            )
+
+        # --- портфель ---
         ax_portfolio = ax_price.twinx()
-        ax_portfolio.plot(result.index, result["Portfolio"], label="Portfolio ($)")
+        ax_portfolio.plot(
+            result.index,
+            result["Portfolio"],
+            label="Portfolio ($)",
+            alpha=0.8,
+        )
+
+        # --- вкладення (бари) ---
         invested_plot = result["Invested"].resample("ME").last()
-        ax_portfolio.bar(invested_plot.index, invested_plot.values, width=20, alpha=0.15, label="Invested capital ($)")
+        ax_portfolio.bar(
+            invested_plot.index,
+            invested_plot.values,
+            width=20,
+            alpha=0.1,
+            label="Invested capital ($)",
+        )
 
         ax_portfolio.set_ylabel("Portfolio / Invested ($)")
 
+        # --- легенда ---
         l1, lab1 = ax_price.get_legend_handles_labels()
         l2, lab2 = ax_portfolio.get_legend_handles_labels()
         ax_price.legend(l1 + l2, lab1 + lab2, loc="upper left")
 
-        plt.title(f"DCA ({freq}) — Price vs Portfolio vs Invested (Dynamic TP)")
+        plt.title(f"DCA ({freq}) — Price vs Portfolio vs Invested (Take-Profit)")
+        plt.tight_layout()
         plt.show()
 
     return result, metrics
