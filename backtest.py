@@ -124,99 +124,6 @@ def backtest_rebalance(df,
 def backtest_dca(
     prices: pd.Series,
     buy_amount: float = 2.0,
-    freq: str = "D",      # "D", "W", "M"
-    fee: float = 0.001,
-    plot: bool = True
-    ):
-    # Дати покупок
-    buy_dates = prices.resample(freq).first().dropna().index
-
-    qty = 0.0
-    portfolio_history = []
-    invested_series = pd.Series(0.0, index=prices.index)
-
-    for date, price in prices.items():
-        if date in buy_dates:
-            effective_amount = buy_amount * (1 - fee)
-            qty += effective_amount / price
-            invested_series.loc[date] = buy_amount
-
-        portfolio_history.append(qty * price)
-
-    invested_cum = invested_series.cumsum()
-
-    result = pd.DataFrame({
-        "Portfolio": portfolio_history,
-        "Invested": invested_cum
-    }, index=prices.index)
-
-    result["PnL"] = result["Portfolio"] - result["Invested"]
-
-    def max_drawdown(series):
-        peak = series.cummax()
-        return ((series - peak) / peak).min()
-
-    metrics = {
-        "Total_invested": invested_cum.iloc[-1],
-        "Final_value": result["Portfolio"].iloc[-1],
-        "ROI": result["Portfolio"].iloc[-1] / invested_cum.iloc[-1] - 1,
-        "MDD": max_drawdown(result["Portfolio"]),
-        "Total_qty": qty
-    }
-
-    # ----------------------------
-    # Графік
-    # ----------------------------
-    if plot:
-        fig, ax_price = plt.subplots(figsize=(10, 5))
-
-        # Ліва вісь — ціна
-        ax_price.plot(
-            prices.index,
-            prices.values,
-            color="orange",
-            label="Asset price"
-        )
-        ax_price.set_ylabel("Asset price ($)")
-        ax_price.set_xlabel("Date")
-
-        # Права вісь — портфель + інвестиції
-        ax_portfolio = ax_price.twinx()
-
-        ax_portfolio.plot(
-            result.index,
-            result["Portfolio"],
-            label="DCA portfolio ($)"
-        )
-
-        invested_plot = result["Invested"].resample("M").last()
-
-        ax_portfolio.bar(
-            invested_plot.index,
-            invested_plot.values,
-            width=20,
-            alpha=0.15,
-            label="Invested capital ($)"
-        )
-
-        ax_portfolio.set_ylabel("Portfolio / Invested ($)")
-
-        # Легенда
-        l1, lab1 = ax_price.get_legend_handles_labels()
-        l2, lab2 = ax_portfolio.get_legend_handles_labels()
-        ax_price.legend(l1 + l2, lab1 + lab2, loc="upper left")
-
-        plt.title(f"DCA ({freq}) — Price vs Portfolio vs Invested")
-        plt.show()
-
-    return result, metrics
-
-import pandas as pd
-import matplotlib.pyplot as plt
-
-def backtest_dca_alt(
-    prices: pd.Series,
-    buy_amount: float = 2.0,
     freq: str = "D",
     available_sum = 10000,
     fee: float = 0.001,
@@ -325,3 +232,4 @@ def backtest_dca_alt(
         plt.show()
 
     return result, metrics
+
