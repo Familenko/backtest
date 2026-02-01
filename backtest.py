@@ -136,12 +136,14 @@ def backtest_dca(
     qty = 0.0
     cost_basis = 0.0
     realized_profit = 0.0
+    returns_sum = 0.0
     cash_spent = 0.0
 
     dates = []
     portfolio_value = []
     invested_value = []
     realized_profit_series = []
+    returns = []
     avg_price_series = []
 
     cooldown = 0
@@ -175,6 +177,7 @@ def backtest_dca(
 
             cost_sold = cost_basis * (sell_qty / qty)
             realized_profit += proceeds - cost_sold
+            returns_sum += proceeds
 
             qty -= sell_qty
             cost_basis -= cost_sold
@@ -188,6 +191,7 @@ def backtest_dca(
         portfolio_value.append(qty * price)
         invested_value.append(cost_basis)
         realized_profit_series.append(realized_profit)
+        returns.append(returns_sum)
         avg_price_series.append(avg_price)
 
     result = pd.DataFrame(
@@ -196,6 +200,7 @@ def backtest_dca(
             "Invested": invested_value,
             "Avg_price": avg_price_series,
             "Realized_profit": realized_profit_series,
+            "Returns": returns,
         },
         index=dates,
     )
@@ -204,7 +209,8 @@ def backtest_dca(
         "Cash_spent": int(cash_spent),
         "Final_portfolio_value": int(portfolio_value[-1]),
         "Realized_profit": int(realized_profit),
-        "Total_equity": int(portfolio_value[-1]) + int(realized_profit),
+        "Total_returns": int(returns_sum),
+        "Total_equity": int(portfolio_value[-1]) + int(returns_sum),
         "Num_take_profits": len(trigger_dates),
     }
 
