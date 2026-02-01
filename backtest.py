@@ -218,6 +218,7 @@ def backtest_dca_alt(
     prices: pd.Series,
     buy_amount: float = 2.0,
     freq: str = "D",
+    available_sum = 10000,
     fee: float = 0.001,
     profit_multiple: float = 2.0,
     plot: bool = True
@@ -225,6 +226,8 @@ def backtest_dca_alt(
     buy_dates = prices.resample(freq).first().dropna().index
 
     qty = 0.0
+
+    dates = []
     portfolio_history = []
     investment_history = []
     realized_profit = []
@@ -236,10 +239,15 @@ def backtest_dca_alt(
     # динамічний поріг для take-profit
     profit_multiplier_dynamic = profit_multiple
 
-    
+    counter = 0
     for date, price in prices.items():
         # --- купівля за зарплату ---
         if date in buy_dates:
+
+            available_sum -= buy_amount
+            if available_sum < 0:
+                continue
+
             effective_amount = buy_amount * (1 - fee)
             qty += effective_amount / price
             invested_series.loc[date] += buy_amount
@@ -248,8 +256,11 @@ def backtest_dca_alt(
         net_invested = invested_cum - realized_invested
         net_portfolio_value = qty * price
 
+        if counter != 0:
+            counter -= 1
+
         # --- take-profit ---
-        if net_invested > 0 and net_portfolio_value >= profit_multiplier_dynamic * net_invested:
+        if (net_invested > 0) and (net_portfolio_value >= (profit_multiplier_dynamic * net_invested)) and counter == 0:
             # продаємо половину портфеля
             sell_qty = qty * 0.5
             proceeds = sell_qty * price * (1 - fee)
@@ -261,12 +272,14 @@ def backtest_dca_alt(
             trigger_dates.append(date)
 
             # збільшуємо поріг для наступного take-profit
-            profit_multiplier_dynamic *= 2
+            # profit_multiplier_dynamic *= 2
+            counter = 180
 
             # оновлюємо net_portfolio_value після продажу
             net_portfolio_value = qty * price
             net_invested = invested_cum - realized_invested
 
+        dates.append(date)
         portfolio_history.append(net_portfolio_value)
         investment_history.append(net_invested)
         if profit:
@@ -281,9 +294,7 @@ def backtest_dca_alt(
         "Portfolio": portfolio_history,
         "Invested": investment_history,
         "Realized_profit": realized_profit
-    }, index=prices.index)
-
-    result["PnL"] = result["Portfolio"] + sum(realized_profit) - invested_cum
+    }, index=dates)
 
     metrics = {
         "Total_invested": invested_cum.iloc[-1],
