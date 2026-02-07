@@ -1,1 +1,3 @@
 *.pyc
+*.csv
+manifest/log.md
