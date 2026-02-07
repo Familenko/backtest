@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-START_DATE = "2026-02-07"
+START_DATE = "2023-02-07"
 TODAY = datetime.now().strftime("%Y-%m-%d")
 
 # crypto
