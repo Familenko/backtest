@@ -187,7 +187,7 @@ def plot_graph(target, metrics, result, trigger_dates):
     l2, lab2 = ax_portfolio.get_legend_handles_labels()
     ax_price.legend(l1 + l2, lab1 + lab2, loc="upper left")
 
-    plt.title(f"<{target}> Cash_spent: {metrics['Cash_spent']}, Final_portfolio_value: {metrics['Final_portfolio_value']}, Bull_history: {metrics['Bull_history']}%," +
+    plt.title(f"<{target}> Cash_spent: {metrics['Cash_spent']}, Present_portfolio_value: {metrics['Final_portfolio_value']}, Bull_history: {metrics['Bull_history']}%," +
                 f"\n Realized_profit: {metrics['Realized_profit']}, Total_returns: {metrics['Total_returns']}, Total_equity: {metrics['Total_equity']}, Num_take_profits: {metrics['Num_take_profits']}")
     
     plt.tight_layout()
