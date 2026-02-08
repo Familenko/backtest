@@ -21,6 +21,7 @@ crypto_regular_amount = 10
 crypto_freq = "W-MON"
 crypto_fee = 0.001
 crypto_profit_multiple = 2
+crypto_cooldown_days = 180
 
 # stocks
 stocks = [
@@ -31,3 +32,4 @@ stock_regular_amount = 200
 stock_freq = "WOM-3THU"
 stock_fee = 0.01
 stock_profit_multiple = 10
+stock_cooldown_days = 180
