@@ -81,6 +81,7 @@ def backtest_dca(
         {
             "Portfolio": portfolio_value,
             "Invested": invested_value,
+            "Price": prices.values,
             "Avg_price": avg_price_series,
             "Realized_profit": realized_profit_series,
             "Returns": returns,
@@ -97,13 +98,17 @@ def backtest_dca(
         "Num_take_profits": len(trigger_dates),
     }
 
+    result['Averege_dominance'] = result['Price'] >= result['Avg_price']
+    bull_history = result['Averege_dominance'].value_counts(normalize=True).iloc[0]
+    bull_history = int(bull_history * 100)
+
     if plot:
         fig, ax_price = plt.subplots(figsize=(10, 5))
 
         # --- ціна активу ---
         ax_price.plot(
-            prices.index,
-            prices.values,
+            result.index,
+            result["Price"],
             color="orange",
             label="Asset price",
             linewidth=1.0,
@@ -127,7 +132,7 @@ def backtest_dca(
         if trigger_dates:
             ax_price.scatter(
                 trigger_dates,
-                prices.loc[trigger_dates],
+                result.loc[trigger_dates]["Price"],
                 color="red",
                 marker="o",
                 s=20,
@@ -137,7 +142,7 @@ def backtest_dca(
 
         for dt in trigger_dates:
             profit = result.loc[dt]["Realized_profit"]
-            price = prices.loc[dt]
+            price = result.loc[dt]["Price"]
 
             ax_price.annotate(
                 f"{profit:.0f}$",
@@ -175,7 +180,7 @@ def backtest_dca(
         l2, lab2 = ax_portfolio.get_legend_handles_labels()
         ax_price.legend(l1 + l2, lab1 + lab2, loc="upper left")
 
-        plt.title(f"{target} : Cash_spent: {metrics['Cash_spent']}, Final_portfolio_value: {metrics['Final_portfolio_value']}," +
+        plt.title(f"{target} : Cash_spent: {metrics['Cash_spent']}, Final_portfolio_value: {metrics['Final_portfolio_value']}, Bull_history: {bull_history}%," +
                   f"\n Realized_profit: {metrics['Realized_profit']}, Total_returns: {metrics['Total_returns']}, Total_equity: {metrics['Total_equity']}, Num_take_profits: {metrics['Num_take_profits']}")
         
         plt.tight_layout()

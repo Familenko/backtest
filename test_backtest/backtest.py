@@ -198,6 +198,7 @@ def backtest_dca(
         {
             "Portfolio": portfolio_value,
             "Invested": invested_value,
+            "Price": prices.values,
             "Avg_price": avg_price_series,
             "Realized_profit": realized_profit_series,
             "Returns": returns,
