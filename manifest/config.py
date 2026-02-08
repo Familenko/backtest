@@ -20,7 +20,7 @@ crypto = {
 crypto_regular_amount = 10
 crypto_freq = "W-MON"
 crypto_fee = 0.001
-crypto_profit_multiple = 3
+crypto_profit_multiple = 2
 
 # stocks
 stocks = [
