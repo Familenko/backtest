@@ -11,9 +11,9 @@ crypto = {
     "BNB": "BNB-USD",
     "XRP": "XRP-USD",
     "SOL": "SOL-USD",
-    "TRON": "TRX-USD",
+    "DOT": "DOT-USD",
     "ADA": "ADA-USD",
-    "XMR": "XMR-USD",
+    "TON": "TON-USD",
     "LINK": "LINK-USD",
     "AVAX": "AVAX-USD"
 }
@@ -25,10 +25,9 @@ crypto_cooldown_days = 180
 
 # stocks
 stocks = [
-    'SPY', 
-    'ASML.AS'
+    'SPY'
 ]
-stock_regular_amount = 200
+stock_regular_amount = 300
 stock_freq = "WOM-3THU"
 stock_fee = 0.01
 stock_profit_multiple = 10
