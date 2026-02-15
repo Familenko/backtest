@@ -90,8 +90,7 @@ def backtest_dca(
     )
 
     result['Averege_dominance'] = result['Price'] >= result['Avg_price']
-    bull_history = result['Averege_dominance'].value_counts(normalize=True).iloc[0]
-    bull_history = int(bull_history * 100)
+    bull_history = int(result['Averege_dominance'].mean() * 100)
 
     metrics = {
         "Cash_spent": int(cash_spent),
